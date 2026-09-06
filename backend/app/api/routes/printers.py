@@ -3378,24 +3378,25 @@ async def delete_ams_label(
 @router.post("/{printer_id}/debug/simulate-print-complete")
 async def debug_simulate_print_complete(
     printer_id: int,
+    archive_id: int | None = Query(default=None),
     db: AsyncSession = Depends(get_db),
     _=RequirePermissionIfAuthEnabled(Permission.PRINTERS_CONTROL),
 ):
     """DEBUG: Simulate print completion to test freeze behavior.
 
     This triggers the same code path as a real print completion,
-    without needing to wait for an actual print to finish.
+    without needing to wait for an actual print to finish. Pass
+    ``archive_id`` to replay a specific archive instead of the newest.
     """
     from backend.app.main import _active_prints, on_print_complete
     from backend.app.models.archive import PrintArchive
 
-    # Get the most recent archive for this printer
-    result = await db.execute(
-        select(PrintArchive)
-        .where(PrintArchive.printer_id == printer_id)
-        .order_by(PrintArchive.created_at.desc())
-        .limit(1)
-    )
+    stmt = select(PrintArchive).where(PrintArchive.printer_id == printer_id)
+    if archive_id is not None:
+        stmt = stmt.where(PrintArchive.id == archive_id)
+    else:
+        stmt = stmt.order_by(PrintArchive.created_at.desc())
+    result = await db.execute(stmt.limit(1))
     archive = result.scalar_one_or_none()
 
     if not archive:
