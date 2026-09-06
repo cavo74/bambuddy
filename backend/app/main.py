@@ -6671,10 +6671,23 @@ async def on_print_complete(printer_id: int, data: dict):
                     ams_mapping=stored_ams_mapping,
                 )
                 if usage_results:
+                    # Stable per-run id so downstream consumers (e.g. the FilaMan
+                    # driver) can build an idempotent key and not re-charge a
+                    # spool when the same completion is replayed after a
+                    # reconnect. archive_id is unique per print; fall back to
+                    # filename + completion time when auto-archive is off.
+                    usage_event_id = (
+                        f"bambuddy:{printer_id}:{archive_id}"
+                        if archive_id is not None
+                        else f"bambuddy:{printer_id}:"
+                        f"{data.get('subtask_name') or data.get('filename') or 'run'}:"
+                        f"{int(start_time)}"
+                    )
                     await ws_manager.broadcast(
                         {
                             "type": "spool_usage_logged",
                             "printer_id": printer_id,
+                            "event_id": usage_event_id,
                             "usage": usage_results,
                         }
                     )
