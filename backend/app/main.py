@@ -6683,11 +6683,18 @@ async def on_print_complete(printer_id: int, data: dict):
                         f"{data.get('subtask_name') or data.get('filename') or 'run'}:"
                         f"{int(start_time)}"
                     )
+                    # Human context for downstream consumers to show against the
+                    # consumption entry (e.g. the FilaMan event note).
+                    _pi = printer_manager.get_printer(printer_id)
                     await ws_manager.broadcast(
                         {
                             "type": "spool_usage_logged",
                             "printer_id": printer_id,
                             "event_id": usage_event_id,
+                            "printer_name": _pi.name if _pi else None,
+                            "print_name": (
+                                data.get("subtask_name") or data.get("filename")
+                            ),
                             "usage": usage_results,
                         }
                     )
