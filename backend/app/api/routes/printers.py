@@ -3379,6 +3379,7 @@ async def delete_ams_label(
 async def debug_simulate_print_complete(
     printer_id: int,
     archive_id: int | None = Query(default=None),
+    tray: int | None = Query(default=None),
     db: AsyncSession = Depends(get_db),
     _=RequirePermissionIfAuthEnabled(Permission.PRINTERS_CONTROL),
 ):
@@ -3386,7 +3387,9 @@ async def debug_simulate_print_complete(
 
     This triggers the same code path as a real print completion,
     without needing to wait for an actual print to finish. Pass
-    ``archive_id`` to replay a specific archive instead of the newest.
+    ``archive_id`` to replay a specific archive instead of the newest,
+    and ``tray`` (a global AMS tray id, e.g. 2 for AMS0-T2) to force
+    the slicer slot -> tray mapping when the real ams_mapping is absent.
     """
     from backend.app.main import _active_prints, on_print_complete
     from backend.app.models.archive import PrintArchive
@@ -3415,6 +3418,9 @@ async def debug_simulate_print_complete(
         "subtask_name": subtask_name,
         "timelapse_was_active": False,
     }
+    if tray is not None:
+        # Force slicer-slot -> AMS-tray mapping (list index = slot_id - 1).
+        data["ams_mapping"] = [tray]
 
     logger.info("Simulating print complete for printer %s, archive %s", printer_id, archive.id)
 
