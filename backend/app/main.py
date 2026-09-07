@@ -6676,7 +6676,7 @@ async def on_print_complete(printer_id: int, data: dict):
                     # spool when the same completion is replayed after a
                     # reconnect. archive_id is unique per print; fall back to
                     # filename + completion time when auto-archive is off.
-                    usage_event_id = (
+                    usage_event_id = data.get("force_usage_event_id") or (
                         f"bambuddy:{printer_id}:{archive_id}"
                         if archive_id is not None
                         else f"bambuddy:{printer_id}:"

@@ -3380,6 +3380,7 @@ async def debug_simulate_print_complete(
     printer_id: int,
     archive_id: int | None = Query(default=None),
     tray: int | None = Query(default=None),
+    fresh: bool = Query(default=False),
     db: AsyncSession = Depends(get_db),
     _=RequirePermissionIfAuthEnabled(Permission.PRINTERS_CONTROL),
 ):
@@ -3421,6 +3422,12 @@ async def debug_simulate_print_complete(
     if tray is not None:
         # Force slicer-slot -> AMS-tray mapping (list index = slot_id - 1).
         data["ams_mapping"] = [tray]
+    if fresh:
+        # Bypass downstream idempotency (unique event id) so a replay of an
+        # already-recorded archive still produces a fresh consumption event.
+        import uuid as _uuid
+
+        data["force_usage_event_id"] = f"bambuddy:sim:{archive.id}:{_uuid.uuid4().hex[:12]}"
 
     logger.info("Simulating print complete for printer %s, archive %s", printer_id, archive.id)
 
