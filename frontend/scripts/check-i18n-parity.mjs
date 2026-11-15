@@ -529,6 +529,23 @@ const PL_COGNATES = [
   'A4 (210 × 297 mm)', 'Letter',  // paper formats, as Polish names them
 ];
 
+// Slovak cognates — brand names, acronyms, format strings, words Slovak spells
+// the same (Filament, Model, Port, Interval…) and the printer control/state words
+// (Print, Pause, Resume, Stop, Printing, Paused, Idle, Failed…) that this fork's
+// Slovak UI deliberately keeps in English. Checked against sk.ts entry by entry.
+const SK_COGNATES = [
+  'Filament', 'Filter', 'Print', 'Model', 'Idle', 'Printing', 'Paused', 'Offline', 'Finished', 'Ext',
+  'Resume', 'Pause', 'Stop', '{{filament}} @ {{temp}}°C', '{{ams}} · Slot {{slot}}', 'Failed', '{{weight}}g',
+  'MakerWorld: {{designer}}', '{{name}} - Timelapse', 'Pipeline', 'Timelapse', 'Interval',
+  'Interval ({{type}})', 'Preparing', 'Online', 'Disk', 'Cloud', 'Slicer', 'Hex', 'Port', 'email',
+  'round robin', 'Filament {{n}}', '{{printer}}: {{error}}', 'Overlay URL', 'Bambu Cloud', 'Orca Cloud',
+  'Pressure Advance', 'Filament {{index}} ({{type}})', 'Slot', 'A4 (210 × 297 mm)',
+  'US Letter (215.9 × 279.4 mm)', 'Letter', 'Jade White, Fire Red...', 'EC984C,#6CD4BC,A66EB9,D87694',
+  'Interval (min)', 'Commit', 'Timelapse video', 'High Flow', '({{count}}/8)', 'Proxy', '{{count}} filament',
+  'Notify! token', 'Live Activities (iOS)', '(25%, 50%, 75%)', 'Test', 'Hex: #{{hex}}', 'Tag', 'N/A',
+  '{{name}} (offline)', 'Callback URL', 'Cam Wall', 'Trend',
+];
+
 const IDENTICAL_TO_EN_ALLOWED = {
   de: new Set(DE_COGNATES),
   fr: new Set(FR_COGNATES),
@@ -545,6 +562,7 @@ const IDENTICAL_TO_EN_ALLOWED = {
   uk: new Set(UK_COGNATES),
   nl: new Set(NL_COGNATES),
   pl: new Set(PL_COGNATES),
+  sk: new Set(SK_COGNATES),
 };
 
 // Pure comparison logic, exported so tests can verify each failure mode
@@ -565,7 +583,12 @@ export function compareLocales(locales) {
     if (code === 'en') continue;
     const keys = new Set(map.keys());
     const missing = [...enKeys].filter((k) => !keys.has(k)).sort();
-    const extra = [...keys].filter((k) => !enKeys.has(k)).sort();
+    const extra = [...keys]
+      .filter((k) => !enKeys.has(k))
+      // Languages with more plural categories than English (sk: one/few/many/other)
+      // may add _few/_many forms for any key en pluralises with _other.
+      .filter((k) => !(/_(few|many)$/.test(k) && enKeys.has(k.replace(/_(few|many)$/, '_other'))))
+      .sort();
     add(`${code}: missing keys vs en`, missing);
     add(`${code}: extra keys vs en`, extra);
   }
